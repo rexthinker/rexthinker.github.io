@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paper Title</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 标题和作者部分 -->
+        <header class="paper-header">
+            <h1 class="paper-title">Rex-Thinker: Grounded Object Referring via Chain-of-Thought Reasoning</h1>
+            <div class="authors">
+                <p>
+                    <a href="https://mountchicken.github.io/" target="_blank" class="author-link">Qing Jiang<sup>1,2</sup></a><sup class="equal-contribution">*</sup>, 
+                    <a href="https://seanchenxy.github.io/" target="_blank" class="author-link">Xingyu Chen<sup>1,3</sup></a><sup class="equal-contribution">*</sup>, 
+                    <a href="https://scholar.google.com/citations?user=U_cvvUwAAAAJ&hl=zh-CN&oi=ao" target="_blank" class="author-link">Zhaoyang Zeng<sup>1</sup></a>, 
+                    <a href="https://scholar.google.com/citations?user=Gudfky4AAAAJ&hl=zh-CN&oi=ao" target="_blank" class="author-link">Junzhi Yu<sup>3</sup></a>, 
+                    <a href="https://www.leizhang.org/" target="_blank" class="author-link">Lei Zhang<sup>1</sup></a><sup class="corresponding-author">†</sup>
+                </p>
+                <p class="affiliations">
+                    <sup>1</sup>International Digital Economy Academy (IDEA)<br>
+                    <sup>2</sup>South China University of Technolodgy<br>
+                    <sup>3</sup>Peking University<br>
+                    <span class="equal-contribution-note">* Equal contribution</span>
+                    <span class="corresponding-author-note">† Corresponding author</span>
+                </p>
+            </div>
+            <!-- 链接图标部分 -->
+            <div class="links-container">
+                <a href="https://github.com/IDEA-Research/Rex-Thinker" class="link-icon" title="GitHub">
+                    <i class="fab fa-github"></i>
+                    <span class="link-text">Code</span>
+                </a>
+                <a href="#" class="link-icon" title="arXiv">
+                    <i class="fas fa-file-alt"></i>
+                    <span class="link-text">Paper</span>
+                </a>
+                <a href="https://huggingface.co/IDEA-Research/Rex-Thinker-GRPO-7B" class="link-icon" title="HuggingFace Weights">
+                    <i class="fas fa-weight"></i>
+                    <span class="link-text">Weight</span>
+                </a>
+                <a href="https://huggingface.co/datasets/IDEA-Research/HumanRef-CoT-45k" class="link-icon" title="HumanRef-CoT Data">
+                    <i class="fas fa-database"></i>
+                    <span class="link-text">Data</span>
+                </a>
+                <a href="#" class="link-icon" title="Demo">
+                    <i class="fas fa-play-circle"></i>
+                    <span class="link-text">Demo</span>
+                </a>
+            </div>
+        </header>
+        
+        <!-- 动态Demo演示 -->
+        <div class="dynamic-demo">
+            <div class="demo-container">
+                <h2 class="demo-title">Live Reasoning Demo</h2>
+                <p class="demo-subtitle">Watch Rex-Thinker analyze and reason step-by-step</p>
+                
+                <div class="demo-content">
+                    <!-- 图片显示区域 -->
+                    <div class="demo-image-container">
+                        <div class="image-wrapper">
+                            <img id="demo-image" src="assets/original_1.jpg" alt="Demo Image">
+                            <div class="image-overlay">
+                                <div class="processing-indicator">
+                                    <div class="pulse-circle"></div>
+                                    <span class="processing-text">Processing...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="demo-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill"></div>
+                            </div>
+                            <div class="progress-text">Analyzing image...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 文本输出区域 -->
+                    <div class="demo-text-container">
+                        <div class="terminal-window">
+                            <div class="terminal-header">
+                                <div class="terminal-buttons">
+                                    <span class="terminal-button red"></span>
+                                    <span class="terminal-button yellow"></span>
+                                    <span class="terminal-button green"></span>
+                                </div>
+                                <div class="terminal-title">Rex-Thinker AI Reasoning</div>
+                            </div>
+                            <div class="terminal-content">
+                                <div class="terminal-line">
+                                    <span class="prompt">Human:</span>
+                                    <span id="question-text" class="question-output"></span>
+                                    <span class="cursor"></span>
+                                </div>
+                                <div class="terminal-line hidden" id="ai-response">
+                                    <span class="prompt ai-prompt">Rex-Thinker:</span>
+                                    <div id="ai-text" class="ai-output"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 控制按钮 -->
+                <div class="demo-controls">
+                    <button id="next-example" class="demo-button">
+                        <i class="fas fa-forward"></i>
+                        Next Example
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grounded Object Referring Section -->
+        <section class="grounded-section">
+            <div class="section-container">
+                <div class="section-content">
+                    <div class="text-content">
+                        <h2>Grounded Object Referring</h2>
+                        <div class="text-body">
+                            <p>Grounded Object Referring is the task of locating objects in an image based on natural language descriptions—for example, "the man in a blue shirt" or "the dog sitting under the table." Unlike standard object detection, this task requires a deeper understanding of both visual details and linguistic nuances, including attributes, spatial relationships, and interactions.</p>
+                            
+                            <p>What makes it <em>grounded</em> is the focus on explainable and verifiable reasoning. Instead of guessing the object from the description, a grounded model reasons step-by-step—just like a human would. It first identifies possible candidates, then examines each one carefully based on the description, and finally selects the best match. This process reduces hallucination (predicting non-existent objects) and makes the model's decisions transparent and trustworthy.</p>
+                            
+                            <p>Our model, Rex-Thinker, tackles this task using Chain-of-Thought (CoT) reasoning, breaking down each decision into clear steps: Planning, Action, and Summarization. Combined with our HumanRef-CoT dataset and fine-tuning methods, this leads to state-of-the-art accuracy and interpretability.</p>
+                        </div>
+                    </div>
+                    <div class="image-content">
+                        <img src="assets/grounded_object_referring.jpg" alt="Grounded Object Referring Illustration">
+                        <p class="image-caption">Chain-of-Thought object referring through planning, action, and summarization.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- HumanRef-CoT Dataset Section -->
+        <section class="dataset-section">
+            <div class="section-container">
+                <div class="section-content">
+                    <div class="text-content">
+                        <h2>HumanRef-CoT Dataset</h2>
+                        <div class="image-content">
+                            <img src="assets/data_engine.jpg" alt="HumanRef-CoT Dataset Engine">
+                            <p class="image-caption">Overview of the proposed CoT reasoning referring data engine.</p>
+                        </div>
+                        <div class="text-body">
+                            <p>HumanRef-CoT is a large-scale dataset designed to support Chain-of-Thought (CoT) reasoning for the Referring Expression Comprehension (REC) task. It includes 90,824 high-quality annotations generated using GPT-4o, based on the HumanRef dataset—a benchmark focusing on complex, human-centric referring expressions.</p>
+                            
+                            <p>Each annotation follows a structured CoT reasoning format with three stages:</p>
+                            
+                            <ul class="cot-stages">
+                                <li><strong>Planning:</strong> Decomposes the referring expression into subgoals.</li>
+                                <li><strong>Action:</strong> Evaluates each candidate region step-by-step using box-level visual hints.</li>
+                                <li><strong>Summarization:</strong> Aggregates the reasoning results to produce the final prediction.</li>
+                            </ul>
+                            
+                            <p>To generate these annotations, we use GPT-4o with carefully designed in-context prompts, grounded visual markers, and strict answer verification. Only samples where the model's final prediction matches the ground truth are retained.</p>
+                            
+                            <p><strong>HumanRef-CoT enables interpretable and verifiable reasoning supervision and serves as the backbone for both supervised fine-tuning and reinforcement learning (GRPO) stages in our training pipeline.</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Two-Stage Training Section -->
+        <section class="training-section">
+            <div class="section-container">
+                <div class="section-content">
+                    <div class="text-content">
+                        <h2>Two-Stage Training with SFT and GRPO</h2>
+                        <div class="image-content">
+                            <img src="assets/two_stage.jpg" alt="Two-Stage Training Pipeline">
+                            <p class="image-caption">Overview of the Rex-Thinker architecture and our two-stage training methods</p>
+                        </div>
+                        <div class="text-body">
+                            <p>To effectively teach the model how to reason step-by-step, we adopt a two-stage training pipeline:</p>
+                            
+                            <h3>Supervised Fine-Tuning (SFT)</h3>
+                            <p>We start by fine-tuning the model on the HumanRef-CoT dataset using token-level supervision. This stage teaches the model to generate structured reasoning traces—including planning, action, and summarization—guided by ground-truth annotations. The goal is to instill the model with a strong foundation in Chain-of-Thought reasoning grounded in visual evidence.</p>
+                            
+                            <h3>GRPO-Based Reinforcement Learning</h3>
+                            <p>After SFT, we apply Group Relative Policy Optimization (GRPO) to further improve performance. GRPO enables the model to explore alternative reasoning paths by sampling multiple responses and reinforcing those that achieve higher task-level rewards. This enhances the model's generalization, robustness, and ability to handle ambiguous or out-of-distribution cases, while also reducing hallucinations.</p>
+                            
+                            <p><strong>Together, these two stages result in a model that is not only accurate, but also interpretable and trustworthy in its reasoning process.</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 可视化结果标题 -->
+        <div class="visualization-title">
+            <h2>More Examples</h2>
+            <p>Explore additional examples of Rex-Thinker's reasoning capabilities across diverse scenarios.</p>
+        </div>
+        
+        <!-- Example1 -->
+        <!-- 流水灯展示栏 -->
+        <div class="showcase-bar">
+            <div class="showcase-container">
+                <div class="showcase-item active">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/original_1.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect the youngest one.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-item">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/origianl_2.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect the two people holding hands
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-item">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/original_3.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect all non-real persons.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-item">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/original_4.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect the one with rich Vitamin C
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-item">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/original_5.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect the leader.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-item">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/original_6.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect the potato, and tell me how to pick and place it into the container using the robot gripper.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-item">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/original_7.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect apple with disease, and tell me what kind of disease it may be.
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-item">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/original_8.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect ripe tomato.
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-item">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/original_9.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect damaged container.
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-item">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/original_10.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect athletes with an even number of number plates.
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-item">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/original_11.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect person holding two footballs.
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-item">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/original_12.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect car in a crash.
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-item">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/original_13.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect Hot dogs on the grill.
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-item">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/original_14.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect all person to the right of the person wearing a yellow tie.
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-item">
+                    <div class="showcase-preview">
+                        <div class="image-container">
+                            <img src="assets/original_15.jpg" alt="Box Hint">
+                        </div>
+                        <div class="text-preview">
+                            <p style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 1.5em;">
+                                Please detect person wearing cloth that has letter A
+.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="showcase-nav">
+                <button class="nav-button prev-button">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="nav-button next-button">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        
+
+        <!-- 模态框 -->
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint1.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_1.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+Question: Please detect the youngest one.
+Answer:
+<think>
+OK, the user needs us to detect the youngest one. To accomplish this task, I need to break it down into the following steps:
+- Step 1: Determine the age-related attributes of each person.
+- Step 2: Compare the age-related attributes to find the youngest one.
+
+# Step 1: Determine the age-related attributes of each person
+- Person 1: A young girl with light-colored hair, wearing a white outfit. She appears to be a child. ⚠️
+- Person 2: A woman with long brown hair, wearing a light-colored top and white pants. She is an adult. ❌
+- Person 3: A man with short hair, wearing a beige sweater and brown pants. He is an adult. ❌
+- Person 4: A young boy with light-colored hair, wearing a patterned shirt. He appears to be a child. ⚠️
+
+# Step 2: Compare the age-related attributes to find the youngest person
+Among the four people, Person 1 and Person 4 are children, while Person 2 and Person 3 are adults. Comparing Person 1 and Person 4, they both seem to be of similar young-age, but based on visual cues like height and overall appearance, Person 4 appears to be slightly younger.
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target person and ❌ for others
+- Person 1: She is a young girl but not the youngest. ❌
+- Person 2: She is an adult. ❌
+- Person 3: He is an adult. ❌
+- Person 4: He is the youngest one. ✅</think>
+<answer>
+```json[{"bbox_2d": [298, 94, 597, 410], "label": "the youngest one"}]```
+</answer>
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 第二个样例的模态框 -->
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint2.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_2.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+Question: Please detect the two people holding hands.
+Answer:
+<think>OK, the user needs us to detect two people holding hands. To accomplish this task, I need to break it down into the following steps:
+- Step 1: Identify pairs of people engaged in a hand-holding interaction.
+
+#  Step 1: Identify pairs of people engaged in a hand-holding interaction.
+I see 18 people in this image. Let's look at their interactions:
+- Person 3: Taking a photo, no hand-holding interaction. → ❌
+- Person 15: Standing near others, no hand-holding interaction. → ❌
+- Person 4: Holding hands with Person 6. → ✅
+- Person 6: Holding hands with Person 4. → ✅
+- Person 9: Sitting with a cat, no hand-holding interaction. → ❌
+- Person 17: Standing near others, no hand-holding interaction. → ❌
+…
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target people and ❌ for others:
+- Person 3: Not involved in a hand-holding interaction → ❌
+- Person 15: Not involved in a hand-holding interaction → ❌
+- Person 18: Not involved in a hand-holding interaction → ❌
+- Person 4: Involved in a hand-holding interaction with Person 6 → ✅
+- Person 6: Involved in a hand-holding interaction with Person 4 → ✅
+- Person 9: Not involved in a hand-holding interaction → ❌
+- Person 9: Not involved in a hand-holding interaction → ❌
+- Person 17: Not involved in a hand-holding interaction → ❌
+</think>
+<answer>
+```json[{"bbox_2d": [169, 161, 286, 591], "label": "Two people holding hands"}, {"bbox_2d": [259, 127, 400, 450], "label": "Two people holding hands"}]```
+</answer>
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 第二个样例的模态框 -->
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint3.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_3.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+Question: Please detect all non-real persons.
+Answer:
+<think>OK, the user needs us to detect all non-real persons. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Determine which people in the image are real or not based on their appearance and context.
+
+# Step 1: Determine which people in the image are real or not based on their appearance and context. I see 68 people in this image. Let's analyze each person one by one:
+- Person 1: He is a man in formal attire shaking hands with another person. He appears to be a real-life participant in the event. ❌
+- Person 3: He is a man standing in the audience area. He seems to be a real-life attendee. ❌
+- Person 4: It is a statue in the background. It is not a real person. ⚠️
+- Person 13: It is part of the podium-like structure, not a real person. ⚠️
+…
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target person and ❌ for others
+- Person 1: He is a real person. ❌
+- Person 3: He is a real person. ❌
+- Person 4: It is a statue, not a real person. ✅
+- Person 13: It is part of the structure, not a real person. ✅</think>
+<answer>
+```json[{"bbox_2d": [562, 349, 619, 433], "label": "all non-real persons"}, {"bbox_2d": [850, 382, 908, 462], "label": "all non-real persons"}]```
+</answer>
+
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 第二个样例的模态框 -->
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint4.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_4.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+Question: Please detect the one with rich Vitamin C.
+Answer:
+<think>OK, the user needs us to detect the one with rich Vitamin C. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Identify the fruits and vegetables that are known to be rich in Vitamin C.
+- Step 2: Check each of the 46 items in the image against the identified fruits and vegetables. Let's start our analysis:
+
+# Step 1: Identify the fruits and vegetables that are known to be rich in Vitamin C
+Fruits and vegetables rich in Vitamin C include citrus fruits like oranges and lemons, limes, bell peppers, broccoli, and some leafy greens.
+# Step 2: Check each of the 46 items in the image against the identified fruits and vegetables
+- Item 1: Avocado, not rich in Vitamin C ❌
+...
+- Item 5: Lime, rich in Vitamin C ⚠️
+...
+- Item 7: Beetroot, not rich in Vitamin C ❌
+- Item 8: Lime, rich in Vitamin C ⚠️
+...
+- Item 11: Kale, rich in Vitamin C ⚠️
+...
+- Item 13: Broccoli, rich in Vitamin C ⚠️
+...
+- Item 15: Garlic, not rich in Vitamin C ❌
+- Item 16: Lime, rich in Vitamin C ⚠️
+...
+- Item 21: Orange, rich in Vitamin C ⚠️
+..
+- Item 29: Orange, rich in Vitamin C 
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target item and ❌ for others
+- Item 5: Lime, rich in Vitamin C → ✅
+- Item 8: Lime, rich in Vitamin C → ✅
+- Item 11: Kale, rich in Vitamin C → ✅
+- Item 13: Broccoli, rich in Vitamin C → ✅
+- Item 16: Lime, rich in Vitamin C → ✅
+- Item 18: Lemon, rich in Vitamin C → ✅
+- Item 21: Orange, rich in Vitamin C → ✅
+- Item 24: Grapefruit, rich in Vitamin C → ✅
+- Item 29: Orange, rich in Vitamin C → ✅
+- Others: Not rich in Vitamin C → ❌</think>
+<answer>
+```json[{"bbox_2d": [599, 616, 716, 743], "label": "the one with rich Vitamin C"} …]```
+</answer>
+
+
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 第二个样例的模态框 -->
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint5.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_5.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+Question: Please detect the leader.
+Answer:
+<think>OK, the user needs us to detect the leader. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Observe the positions of all 18 cars on the track.
+- Step 2: Determine which car is in the lead position among them.
+
+# Step 1: Observe the positions of all 18 cars on the track
+There are 18 cars visible on the track in the image. They are spread out across different positions on the circuit, some closer to the inner-lane and some near the outer-lane.
+# Step 2: Determine which car is in the lead position among them
+By looking at the overall layout of the cars on the track, we can see that Car 14 is positioned ahead of the other cars, occupying the most forward-most spot on the track compared to the others.
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target car and ❌ for others
+…
+- Car 11: He is not in the lead position → ❌
+- Car 12: He is not in the lead position → ❌
+- Car 13: He is not in the lead position → ❌
+- Car 14: He is in the lead position → ✅
+- Car 15: He is not in the lead position → ❌
+- Car 16: He is not in the lead position → ❌
+- Car 17: He is not in the lead position → ❌
+- Car 18: He is not in the lead position → ❌ </think>
+<answer>
+```[{"bbox_2d": [1177, 579, 1380, 624], "label": "the leader"}]```
+</answer>
+
+
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 第二个样例的模态框 -->
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint6.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_6.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+Question: Please detect the potato, and tell me how to pick and place it into the container using the robot gripper.
+Answer:
+<think>OK, the user needs us to detect the potato and tell us how to pick and place it into the container using the robot gripper. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Identify the potato among the objects present.
+- Step 2: Determine the position of the container.
+- Step 3: Use the robot gripper to pick up the potato and place it into the container.
+
+# Step 1: Identify the potato among the objects present
+There are two objects labeled as "potato" in the image. Let's analyze them:
+- Object 1: It is a yellow-colored object resting on an orange cloth. This is the potato we are looking for. ⚠️
+- Object 2: There is no such object visible in the image that matches the description of a potato in relation to the given labels. ❌
+# Step 2: Determine the position of the container
+The container in the image is a silver-colored pot located towards the right-hand side of the wooden surface.
+# Step 3: Use the robot gripper to pick up the potato and place it into the container
+The robot gripper is positioned near the potato (Object 1). To pick up the potato, the gripper should be closed around the potato and then lifted. Once lifted, the gripper should be brought close to the container and the potato should be placed inside the container.
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target object and ❌ for others
+- Object 1: It is the potato and will be picked up by the robot gripper and placed into the container. ✅
+- Object 2: Not relevant to the task as there is no such object matching the description. ❌ </think>
+<answer>
+```[{"bbox_2d": [211, 580, 323, 733], "label": "the potato"}]```
+</answer>
+
+
+
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint7.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_7.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+Question: Please detect apple with disease, and tell me what kind of disease it may be.
+Answer:
+<think>OK, the user needs us to detect the apple with disease and tell what kind of disease it may be. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Examine each apple to determine if it has any visible signs of disease.
+- Step 2: If an apple is found to have a disease, identify the type of the disease. Let's start our analysis:
+
+# Step 1: Examine each apple to determine if it has any visible signs of disease
+I see five apples in this image. Let's look at them one-by-one and put a ⚠️ if there are signs of disease and ❌ if there are none.
+- Apple 1: It appears to be a healthy green apple with no visible signs of disease. ❌
+- Apple 2: It is also a healthy-looking green apple with no obvious signs of disease. ❌
+- Apple 3: This apple looks like a healthy green apple with no clear signs of disease. ❌
+- Apple 4: Another healthy green apple with no visible signs of disease. ❌
+- Apple 5: This apple has a brownish spot on its surface, which indicates that it has a disease. ⚠️
+
+# Step 2: Identify the type of the disease
+The brownish spot on Apple 5 suggests that it may have a fungal or bacterial infection, which are common types of diseases for apples.
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target apple and ❌ for others:
+- Apple 1: It is a healthy apple with no signs of disease. ❌
+- Apple 2: It is a healthy apple with no signs of disease. ❌
+- Apple 3: It is a healthy apple with no signs of disease. ❌
+- Apple 4: It is a healthy apple with no signs of disease. ❌
+- Apple 5: It has a brownish spot, indicating a possible fungal or bacterial infection. ✅
+</think>
+<answer>
+```json[{"bbox_2d": [429, 261, 570, 395], "label": "apple with disease"}]```
+</answer>
+
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 第二个样例的模态框 -->
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint8.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_8.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+Question: Please detect ripe tomato.
+Answer:
+<think>OK, the user needs us to detect the ripe tomato. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Determine the ripeness of each tomato based on its color. Let's start our analysis:
+
+# Step 1: Determine the ripeness of each tomato based on its color
+I see seven tomatoes in this image, let's look at their colors and put a ⚠️ if it is a ripe tomato and ❌ if it is not.
+- Tomato 1: It has a deep red color, indicating it is a ripe tomato. ⚠️
+- Tomato 2: It also has a deep red color, indicating it is a ripe tomato. ⚠️
+- Tomato 3: It has an orange-brown color, which is not the typical red color of a fully-ripe tomato. ❌
+- Tomato 4: It is green in color, so it is not a ripe tomato. ❌
+- Tomato 5: It is green in color, so it is not a ripe tomato. ❌
+- Tomato 6: It is green in color, so it is not a ripe tomato. ❌
+- Tomato 7: It is green in color, so it is not a ripe tomato. ❌
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target tomato and ❌ for others 
+- Tomato 1: It is a ripe tomato. ✅
+- Tomato 2: It is a ripe tomato. ✅
+- Tomato 3: It is not a ripe tomato. ❌
+- Tomato 4: It is not a ripe tomato. ❌
+- Tomato 5: It is not a ripe tomato. ❌
+- Tomato 6: It is not a ripe tomato. ❌
+- Tomato 7: It is not a ripe tomato. ❌ </think>
+<answer>
+```[{"bbox_2d": [235, 358, 565, 657], "label": "ripe tomato"}, {"bbox_2d": [481, 455, 744, 726], "label": "ripe tomato"}]```
+</answer>
+
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 第二个样例的模态框 -->
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint9.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_9.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+
+Question: Please detect damaged container.
+Answer:
+<think>OK, the user needs us to detect the damaged container. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Examine each of the 31 containers to determine if they have any visible signs of damage.
+
+# Step 1: Step 1: Examine each of the 31 containers to determine if they have any visible signs of damage.
+- Container 1: It appears to be in good condition with no visible signs of damage. ❌
+- Container 2: There is no visible sign of damage on this container. ❌
+- Container 3: This container has a large hole in its side, indicating significant damage. ⚠️
+- Container 4: No visible signs of damage. ❌
+…
+- Container 31: No visible signs of damage. ❌
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target container and ❌ for others
+- Container 1: No visible signs of damage → ❌
+- Container 2: No visible signs of damage → ❌
+- Container 3: Has a large hole, is damaged → ✅
+- Container 4: No visible signs of damage → ❌
+…
+- Container 30: No visible signs of damage → ❌
+- Container 31: No visible signs of damage → ❌ </think>
+<answer>
+```[{"bbox_2d": [288, 183, 699, 459], "label": "damaged container"}]```
+</answer>
+
+
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 第二个样例的模态框 -->
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint10.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_10.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+
+Question: Please detect athletes with an even number of number plates..
+Answer:
+<think>OK, the user needs us to detect athletes with an even-numbered number plates. To accomplish this task, I need to break it down into the following steps:
+- Step 1: Identify the number plate on each athlete.
+- Step 2: Determine if the number plate is even.
+
+# Step 1: Identify the number plate on each athlete
+I see six athletes in this image. Let's look at the number plate on each of them:
+- Athlete 1: His number plate reads "530".
+- Athlete 2: His number plate reads "660".
+- Athlete 3: His number plate reads "485".
+- Athlete 4: His number plate reads "604".
+- Athlete 5: His number plate reads "267".
+- Athlete 6: There is no visible number plate on this athlete.
+
+
+# Step 2: Determine if the number plate is even
+- Athlete 1: The number plate "530" is even. ✅
+- Athlete 2: The number plate "660" is even. ✅
+- Athlete 3: The number plate "485" is odd. ❌
+- Athlete 4: The number plate "604" is even. ✅
+- Athlete 5: The number plate "267" is odd. ❌
+- Athlete 6: Since there is no visible number plate, we cannot determine if it is even or odd, but based on the requirement of having an even-numbered plate, we can consider it as not meeting the condition. ❌
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target athletes and ❌ for others:
+- Athlete 1: Has an even-numbered number plate. ✅
+- Athlete 2: Has an even-numbered number plate. ✅
+- Athlete 3: Has an odd-numbered number plate. ❌
+- Athlete 4: Has an even-numbered number plate. ✅
+- Athlete 5: Has an odd-numbered number plate. ❌
+- Athlete 6: No visible number plate. ❌</think>
+<answer>
+```json[{"bbox_2d": [221, 148, 372, 616], "label": "Athletes with an even number of number plates"}…]```
+</answer>
+
+
+
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 第二个样例的模态框 -->
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint11.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_11.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+
+Question: Please detect person holding two footballs
+Answer:
+<think>OK, the user needs us to detect the person holding two footballs. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Determine what each person is holding.
+- Step 2: Find the person holding two footballs. Let's start our analysis:
+
+# Step 1: Determine what each person is holding
+I see 17 people in this image, let's look at what they are holding and put a ⚠️ if it is two footballs and ❌ if it is not.
+- Person 1: He is not holding anything. ❌
+- Person 2: He is not holding anything. ❌
+- Person 3: He is not holding anything. ❌
+- Person 4: He is holding two footballs. ⚠️
+
+So Person 4 is the person holding two footballs.
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target person and ❌ for others
+- Person 1: He is not holding anything. ❌
+- Person 2: He is not holding anything. ❌
+- Person 3: He is not holding anything. ❌
+- Person 4: He is holding two footballs. ✅
+…</think>
+<answer>
+```json[{"bbox_2d": [652, 49, 791, 412], "label": "person holding two footballs"}]```
+</answer>
+
+
+
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+         <!-- 第二个样例的模态框 -->
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint12.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_12.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+
+Question: Please detect car in a crash
+Answer:
+<think>OK, the user needs us to detect the cars that are in a crash. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Examine each of the 22 cars to determine if they are involved in a crash. Let's start our analysis:
+
+# Step 1: Examine each of the 22 cars to determine if they are involved in a crash
+- Car 1: This car is clearly damaged and is surrounded by emergency vehicles and people, indicating it is in a crash. ⚠️
+- Car 2: This car is also damaged and is in close proximity to other damaged cars and emergency-related activity, so it is in a crash. ⚠️
+- Car 3: There are no visible signs of damage or being involved in an accident-like situation. ❌
+- Car 4: Appears to be undamaged and not part of any crash-related activity. ❌
+- Car 5: Is damaged and is among other damaged cars, so it is in a crash. ⚠️
+- Car 6: There are no clear signs of being in a crash. ❌
+...
+- Car 22: No visible signs of being in a crash. ❌
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target cars and ❌ for others
+- Car 1: Is in a crash → ✅
+- Car 2: Is in a crash → ✅
+- Car 3: Is not in a crash → ❌
+- Car 4: Is not in a crash → ❌
+- Car 5: Is in a crash → ✅</think>
+<answer>
+```json[{"bbox_2d": [401, 208, 553, 303], "label": "car in a crash"}…]```
+</answer>
+
+
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 第二个样例的模态框 -->
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint13.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_13.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+
+Question: Please detect Hot dogs on the grill
+Answer:
+<think> OK, the user needs us to detect the hot dogs on the grill. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Determine the position of each hot-dog in relation to the grill
+
+# Step 1: Determine the position of each hot-dog in relation to the grill
+Let's analyze the position of each hot-dog:
+- Hot dog 1: It is placed on a piece of paper on the table, not on the grill. ❌
+- Hot dog 2: It is also on a piece of paper on the table, not on the grill. ❌
+- Hot dog 3: It is placed on the metal grill. ⚠️
+- Hot dog 4: It is placed on the metal grill. ⚠️
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target hot-dogs and ❌ for others:
+- Hot dog 1: Not on the grill. ❌
+- Hot dog 2: Not on the grill. ❌
+- Hot dog 3: On the grill. ✅
+- Hot dog 4: On the grill. ✅ </think>
+<answer>
+```json[{"bbox_2d": [782, 118, 1070, 451], "label": "Hot dogs on the grill"}, {"bbox_2d": [901, 281, 1284, 550], "label": "Hot dogs on the grill"}]```
+</answer>
+
+
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 第二个样例的模态框 -->
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint14.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_14.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+
+Question: Please detect all person to the right of the person wearing a yellow tie
+Answer:
+<think> OK, the user needs us to detect all person to the right of the person wearing a yellow tie. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Find the person wearing a yellow tie.
+- Step 2: Identify all the people to the right of the person found in Step 1
+
+# Step 1: Find the person wearing a yellow tie
+I see seven people in this image. Let's check their ties and put a ⚠️ if it is a yellow tie and ❌ if it is not.
+- Person 1: She is wearing a red-colored uniform and no visible tie. ❌
+- Person 2: He is wearing a red-colored uniform and no visible tie. ❌
+- Person 3: He is wearing a dark suit with a red tie. ❌
+- Person 4: He is wearing a dark suit with a red tie. ❌
+- Person 5: He is wearing a dark suit with a yellow tie. ⚠️
+- Person 6: He is wearing a dark suit with a green tie. ❌
+- Person 7: She is wearing a red-colored uniform and no visible tie. ❌
+
+So Person 5 is the person wearing a yellow tie.
+
+# Step 2: Identify all the people to the right of Person 5
+The order from left to right is [Person 7, Person 5, Person 3, Person 4, Person 6, Person 2, Person 1].
+People to the right of Person 5 are Person 3, Person 4, Person 6, Person 2, Person 1.
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target people and ❌ for others
+- Person 1: She is to the right of the person wearing a yellow tie. ✅
+…
+- Person 5: He is the person wearing a yellow tie (reference person). ⚠️
+- Person 6: He is to the right of the person wearing a yellow tie. ✅
+- Person 7: She is to the left of the person wearing a yellow tie. ❌</think>
+<answer>
+```json[{"bbox_2d": [838, 323, 1028, 783], "label": "all person to the right of the person wearing a yellow tie"}..]```
+</answer>
+
+
+
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 第二个样例的模态框 -->
+        <div class="showcase-modal">
+            <div class="modal-content">
+                <div class="image-pair">
+                    <div class="image-container">
+                        <img src="assets/box_hint15.jpg" alt="Box Hint">
+                        <span class="image-label">Box Hint</span>
+                    </div>
+                    <div class="image-container">
+                        <img src="assets/answer_15.jpg" alt="Answer">
+                        <span class="image-label">Answer</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h3>Reasoning Process</h3>
+                    <pre class="reasoning-text">
+
+Question: Please detect person wearing cloth that has letter A
+Answer:
+<think> OK, the user needs us to detect the person wearing cloth that has letter A. To accomplish this task, I need to break it down into the following steps:
+- Step 1: Find all the people in the image.
+- Step 2: Check the clothes of each person to see if there is the letter A on them.
+
+# Step 1: Find all the people in the image.
+There are 8 people in the image, listed from left-to-right as person 4, person 6, person 5, person 2, person 3, person 7, person 1, person 8.
+
+# Step 2: Check the clothes of each person to see if there is the letter A on them.
+- Person 4: Wearing a pink dress with the word "VOL" on it, no letter A → ❌
+- Person 6: Wearing an orange dress with the word "VOL" on it, no letter A → ❌
+- Person 5: Wearing a blue shirt with the word "L" on it, no letter A → ❌
+- Person 2: Wearing a pink dress with the word "U" on it, no letter A → ❌
+- Person 3: Wearing a yellow shirt with the word "N" on it, no letter A → ❌
+- Person 7: Wearing a brown shirt with the word "T" on it, no letter A → ❌
+- Person 1: Wearing a blue shirt with the word "ER" on it, no letter A → ❌
+- Person 8: There is a blue shirt inside the box, but no person 8 is visible in terms of wearing clothes with a letter A, and among the people visible, none have a letter A on their clothes.
+
+We also note that person 4 and person 6 are part of the group mentioned in the additional information, but they still do not have the letter A on their clothes.
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target person and ❌ for others
+- Person 4: no letter A on clothes → ❌
+- Person 6: no letter A on clothes → ❌
+- Person 5: no letter A on clothes → ❌
+- Person 2: no letter A on clothes → ❌
+- Person 3: no letter A on clothes → ❌
+- Person 7: no letter A on clothes → ❌
+- Person 1: no letter A on clothes → ❌
+- Person 8: no person 8 visible wearing relevant clothes and others don't have A either → ❌</think>
+<answer>There is no such thing in the image.</answer>
+
+                    </pre>
+                </div>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.querySelector('.showcase-container');
+            const items = document.querySelectorAll('.showcase-item');
+            const prevBtn = document.querySelector('.prev-button');
+            const nextBtn = document.querySelector('.next-button');
+            
+            // 创建真正的环形轮播 - 在两端都添加克隆
+            const itemsArray = Array.from(items);
+            
+            // 在开头添加最后几个项目的克隆
+            for (let i = itemsArray.length - 3; i < itemsArray.length; i++) {
+                const clone = itemsArray[i].cloneNode(true);
+                container.insertBefore(clone, container.firstChild);
+            }
+            
+            // 在结尾添加前几个项目的克隆
+            for (let i = 0; i < 3; i++) {
+                const clone = itemsArray[i].cloneNode(true);
+                container.appendChild(clone);
+            }
+
+            let isAutoScrolling = true; // 改为 true 启动自动滚动
+            let autoScrollTimer = null;
+            const itemWidth = 600 + 32; // item宽度 + gap
+            
+            // 设置初始位置，让第一个真实项目显示在中心，左右都有项目
+            const initialOffset = -3 * itemWidth;
+            container.style.transform = `translateX(${initialOffset}px)`;
+
+            // 自动滚动函数 - 简化版本
+            function startAutoScroll() {
+                if (!isAutoScrolling) return;
+                
+                autoScrollTimer = setTimeout(() => {
+                    if (!isAutoScrolling) return;
+                    
+                    // 获取当前位置
+                    const style = window.getComputedStyle(container);
+                    const matrix = new DOMMatrix(style.transform);
+                    const currentX = matrix.m41;
+                    
+                    // 向左移动一个item的距离
+                    const targetX = currentX - itemWidth;
+                    
+                    // 应用动画
+                    container.style.transition = 'transform 0.8s ease-out';
+                    container.style.transform = `translateX(${targetX}px)`;
+                    
+                }, 8000); // 每8秒移动一次
+            }
+
+            // 检查是否需要重置位置
+            function checkAndResetPosition() {
+                const style = window.getComputedStyle(container);
+                const matrix = new DOMMatrix(style.transform);
+                const currentX = matrix.m41;
+                const totalWidth = items.length * itemWidth;
+
+                // 如果滚动到左端克隆区域，重置到右端对应位置
+                if (currentX <= initialOffset - totalWidth) {
+                    container.style.transition = 'none';
+                    container.style.transform = `translateX(${currentX + totalWidth}px)`;
+                    container.offsetHeight; // 触发重排
+                    return true;
+                }
+                // 如果滚动到右端克隆区域，重置到左端对应位置
+                else if (currentX >= initialOffset + itemWidth * 3) {
+                    container.style.transition = 'none';
+                    container.style.transform = `translateX(${currentX - totalWidth}px)`;
+                    container.offsetHeight; // 触发重排
+                    return true;
+                }
+                return false;
+            }
+
+            // 点击箭头滚动
+            function slide(direction) {
+                // 临时停止自动滚动
+                const wasAutoScrolling = isAutoScrolling;
+                isAutoScrolling = false;
+                if (autoScrollTimer) {
+                    clearTimeout(autoScrollTimer);
+                    autoScrollTimer = null;
+                }
+                
+                // 获取当前位置
+                const style = window.getComputedStyle(container);
+                const matrix = new DOMMatrix(style.transform);
+                const currentX = matrix.m41;
+                
+                // 计算目标位置
+                const targetX = direction === 'next' ? 
+                    currentX - itemWidth : 
+                    currentX + itemWidth;
+                
+                // 应用过渡效果
+                container.style.transition = 'transform 0.5s ease';
+                container.style.transform = `translateX(${targetX}px)`;
+                
+                // 过渡结束后检查位置并恢复自动滚动
+                setTimeout(() => {
+                    checkAndResetPosition();
+                    // 恢复自动滚动状态
+                    isAutoScrolling = wasAutoScrolling;
+                    if (isAutoScrolling) {
+                        // 延迟一点再开始自动滚动
+                        setTimeout(() => {
+                            startAutoScroll();
+                        }, 1000); // 给用户1秒时间看清楚当前位置
+                    }
+                }, 500);
+            }
+
+            // 上一张按钮点击
+            prevBtn.addEventListener('click', () => slide('prev'));
+
+            // 下一张按钮点击
+            nextBtn.addEventListener('click', () => slide('next'));
+
+            // 监听过渡结束
+            container.addEventListener('transitionend', (e) => {
+                // 只处理容器本身的过渡事件
+                if (e.target !== container) return;
+                
+                // 检查是否需要重置位置
+                checkAndResetPosition();
+                
+                // 如果是自动滚动，继续下一轮
+                if (isAutoScrolling) {
+                    startAutoScroll();
+                }
+            });
+
+            // 监听鼠标悬停
+            container.addEventListener('mouseenter', () => {
+                isAutoScrolling = false;
+                if (autoScrollTimer) {
+                    clearTimeout(autoScrollTimer);
+                    autoScrollTimer = null;
+                }
+                
+                // 停止当前动画，保持在当前位置
+                const style = window.getComputedStyle(container);
+                const matrix = new DOMMatrix(style.transform);
+                const currentX = matrix.m41;
+                
+                container.style.transition = 'none';
+                container.style.transform = `translateX(${currentX}px)`;
+            });
+
+            container.addEventListener('mouseleave', () => {
+                isAutoScrolling = true;
+                // 从当前位置继续滚动
+                setTimeout(() => {
+                    if (isAutoScrolling) {
+                        startAutoScroll();
+                    }
+                }, 100);
+            });
+
+            // 初始化显示
+            startAutoScroll(); // 启动自动滚动
+
+            // 模态框相关代码
+            const modals = document.querySelectorAll('.showcase-modal');
+            const closeButtons = document.querySelectorAll('.close-modal');
+
+            // 更新点击事件处理，考虑克隆的项目
+            container.addEventListener('click', (e) => {
+                const clickedItem = e.target.closest('.showcase-item');
+                if (clickedItem) {
+                    const allItems = container.querySelectorAll('.showcase-item');
+                    const clickedIndex = Array.from(allItems).indexOf(clickedItem);
+                    // 计算对应的原始索引
+                    let originalIndex = (clickedIndex - 3) % items.length;
+                    if (originalIndex < 0) originalIndex += items.length;
+                    
+                    modals[originalIndex].classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+            });
+
+            closeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    button.closest('.showcase-modal').classList.remove('active');
+                    document.body.style.overflow = '';
+                });
+            });
+
+            modals.forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.classList.remove('active');
+                        document.body.style.overflow = '';
+                    }
+                });
+            });
+        });
+
+        // 动态Demo功能
+        class DynamicDemo {
+            constructor() {
+                this.examples = [
+                    {
+                        originalImage: 'assets/original_1.jpg',
+                        boxHintImage: 'assets/box_hint1.jpg',
+                        resultImage: 'assets/answer_1.jpg',
+                        question: 'Please detect the youngest one.',
+                        response: `
+&lt;think&gt OK, the user needs us to detect the youngest one. To accomplish this task, I need to break it down into the following steps:
+- Step 1: Determine the age-related attributes of each person.
+- Step 2: Compare the age-related attributes to find the youngest one.
+
+# Step 1: Determine the age-related attributes of each person
+- Person 1: A young girl with light-colored hair, wearing a white outfit. She appears to be a child. ⚠️
+- Person 2: A woman with long brown hair, wearing a light-colored top and white pants. She is an adult. ❌
+- Person 3: A man with short hair, wearing a beige sweater and brown pants. He is an adult. ❌
+- Person 4: A young boy with light-colored hair, wearing a patterned shirt. He appears to be a child. ⚠️
+
+# Step 2: Compare the age-related attributes to find the youngest person
+Among the four people, Person 1 and Person 4 are children, while Person 2 and Person 3 are adults. Comparing Person 1 and Person 4, they both seem to be of similar young-age, but based on visual cues like height and overall appearance, Person 4 appears to be slightly younger.
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target person and ❌ for others
+- Person 1: She is a young girl but not the youngest. ❌
+- Person 2: She is an adult. ❌
+- Person 3: He is an adult. ❌
+- Person 4: He is the youngest one. ✅&lt;/think&gt
+&lt;answer&gt
+[{"bbox_2d": [298, 94, 597, 410], "label": "the youngest one"}]
+&lt;/answer&gt`
+                    },
+                    {
+                        originalImage: 'assets/original_13.jpg',
+                        boxHintImage: 'assets/box_hint13.jpg',
+                        resultImage: 'assets/answer_13.jpg',
+                        question: 'Please detect the hot dogs on the grill.',
+                        response: `
+&lt;think&gt OK, the user needs us to detect the hot dogs on the grill. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Determine the position of each hot-dog in relation to the grill
+
+# Step 1: Determine the position of each hot-dog in relation to the grill
+Let's analyze the position of each hot-dog:
+- Hot dog 1: It is placed on a piece of paper on the table, not on the grill. ❌
+- Hot dog 2: It is also on a piece of paper on the table, not on the grill. ❌
+- Hot dog 3: It is placed on the metal grill. ⚠️
+- Hot dog 4: It is placed on the metal grill. ⚠️
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target hot-dogs and ❌ for others:
+- Hot dog 1: Not on the grill. ❌
+- Hot dog 2: Not on the grill. ❌
+- Hot dog 3: On the grill. ✅
+- Hot dog 4: On the grill. ✅ &lt;/think&gt
+&lt;answer&gt
+[{"bbox_2d": [782, 118, 1070, 451], "label": "Hot dogs on the grill"}, {"bbox_2d": [901, 281, 1284, 550], "label": "Hot dogs on the grill"}]
+&lt;/answer&gt`
+                    },
+                    {
+                        originalImage: 'assets/original_11.jpg',
+                        boxHintImage: 'assets/box_hint11.jpg',
+                        resultImage: 'assets/answer_11.jpg',
+                        question: 'Please detect the person holding two footballs.',
+                        response: `
+&lt;think&gt OK, the user needs us to detect the person holding two footballs. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Determine what each person is holding.
+- Step 2: Find the person holding two footballs. Let's start our analysis:
+
+# Step 1: Determine what each person is holding
+I see 17 people in this image, let's look at what they are holding and put a ⚠️ if it is two footballs and ❌ if it is not.
+- Person 1: He is not holding anything. ❌
+- Person 2: He is not holding anything. ❌
+- Person 3: He is not holding anything. ❌
+- Person 4: He is holding two footballs. ⚠️
+
+So Person 4 is the person holding two footballs.
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target person and ❌ for others
+- Person 1: He is not holding anything. ❌
+- Person 2: He is not holding anything. ❌
+- Person 3: He is not holding anything. ❌
+- Person 4: He is holding two footballs. ✅
+…&lt;/think&gt
+&lt;answer&gt
+[{"bbox_2d": [652, 49, 791, 412], "label": "person holding two footballs"}]
+&lt;/answer&gt`
+                    },
+                    {
+                        originalImage: 'assets/original_8.jpg',
+                        boxHintImage: 'assets/box_hint8.jpg',
+                        resultImage: 'assets/answer_8.jpg',
+                        question: 'Please detect ripe tomato.',
+                        response: `
+&lt;think&gt OK, the user needs us to detect the ripe tomato. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Determine the ripeness of each tomato based on its color. Let's start our analysis:
+
+# Step 1: Determine the ripeness of each tomato based on its color
+I see seven tomatoes in this image, let's look at their colors and put a ⚠️ if it is a ripe tomato and ❌ if it is not.
+- Tomato 1: It has a deep red color, indicating it is a ripe tomato. ⚠️
+- Tomato 2: It also has a deep red color, indicating it is a ripe tomato. ⚠️
+- Tomato 3: It has an orange-brown color, which is not the typical red color of a fully-ripe tomato. ❌
+- Tomato 4: It is green in color, so it is not a ripe tomato. ❌
+- Tomato 5: It is green in color, so it is not a ripe tomato. ❌
+- Tomato 6: It is green in color, so it is not a ripe tomato. ❌
+- Tomato 7: It is green in color, so it is not a ripe tomato. ❌
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target tomato and ❌ for others 
+- Tomato 1: It is a ripe tomato. ✅
+- Tomato 2: It is a ripe tomato. ✅
+- Tomato 3: It is not a ripe tomato. ❌
+- Tomato 4: It is not a ripe tomato. ❌
+- Tomato 5: It is not a ripe tomato. ❌
+- Tomato 6: It is not a ripe tomato. ❌
+- Tomato 7: It is not a ripe tomato. ❌ &lt;/think&gt
+&lt;answer&gt
+[{"bbox_2d": [235, 358, 565, 657], "label": "ripe tomato"}, {"bbox_2d": [481, 455, 744, 726], "label": "ripe tomato"}]
+&lt;/answer&gt`
+                    },
+                    {
+                        originalImage: 'assets/original_7.jpg',
+                        boxHintImage: 'assets/box_hint7.jpg',
+                        resultImage: 'assets/answer_7.jpg',
+                        question: 'Please detect apple with disease, and tell me what kind of disease it may be.',
+                        response: `
+&lt;think&gt OK, the user needs us to detect the apple with disease and tell what kind of disease it may be. In order to accomplish this task, I need to break it down into the following steps:
+- Step 1: Examine each apple to determine if it has any visible signs of disease.
+- Step 2: If an apple is found to have a disease, identify the type of the disease. Let's start our analysis:
+
+# Step 1: Examine each apple to determine if it has any visible signs of disease
+I see five apples in this image. Let's look at them one-by-one and put a ⚠️ if there are signs of disease and ❌ if there are none.
+- Apple 1: It appears to be a healthy green apple with no visible signs of disease. ❌
+- Apple 2: It is also a healthy-looking green apple with no obvious signs of disease. ❌
+- Apple 3: This apple looks like a healthy green apple with no clear signs of disease. ❌
+- Apple 4: Another healthy green apple with no visible signs of disease. ❌
+- Apple 5: This apple has a brownish spot on its surface, which indicates that it has a disease. ⚠️
+
+# Step 2: Identify the type of the disease
+The brownish spot on Apple 5 suggests that it may have a fungal or bacterial infection, which are common types of diseases for apples.
+
+# Summarize and Re-Check answer
+Let's now recheck our answer and put ✅ for the target apple and ❌ for others:
+- Apple 1: It is a healthy apple with no signs of disease. ❌
+- Apple 2: It is a healthy apple with no signs of disease. ❌
+- Apple 3: It is a healthy apple with no signs of disease. ❌
+- Apple 4: It is a healthy apple with no signs of disease. ❌
+- Apple 5: It has a brownish spot, indicating a possible fungal or bacterial infection. ✅ &lt;/think&gt
+&lt;answer&gt
+[{"bbox_2d": [429, 261, 570, 395], "label": "apple with disease"}]
+&lt;/answer&gt`
+                    }
+                ];
+                
+                this.currentIndex = 0;
+                this.isRunning = false;
+                this.shouldStop = false;
+                this.init();
+            }
+
+            init() {
+                this.demoImage = document.getElementById('demo-image');
+                this.questionText = document.getElementById('question-text');
+                this.aiText = document.getElementById('ai-text');
+                this.aiResponse = document.getElementById('ai-response');
+                this.cursor = document.querySelector('.cursor');
+                this.progressFill = document.querySelector('.progress-fill');
+                this.progressText = document.querySelector('.progress-text');
+                this.imageOverlay = document.querySelector('.image-overlay');
+                
+                // 绑定按钮事件
+                document.getElementById('next-example').addEventListener('click', () => this.nextExample());
+                
+                // 开始第一个demo
+                this.startDemo();
+            }
+
+            async startDemo() {
+                this.isRunning = true;
+                this.shouldStop = false;
+                
+                const example = this.examples[this.currentIndex];
+                
+                // 重置状态
+                this.resetDemo();
+                
+                // 阶段1: 显示原始图片
+                this.demoImage.src = example.originalImage;
+                await this.delay(1000);
+                if (this.shouldStop) return;
+                
+                // 阶段2: 打字显示问题
+                await this.typeText(this.questionText, example.question, 50);
+                if (this.shouldStop) return;
+                await this.delay(500);
+                if (this.shouldStop) return;
+                
+                // 阶段3: 显示AI响应区域
+                this.aiResponse.classList.remove('hidden');
+                this.cursor.style.display = 'none';
+                await this.delay(300);
+                if (this.shouldStop) return;
+                
+                // 阶段4: 显示进度条动画和处理指示器
+                this.showProcessing();
+                this.updateProgress(20, 'Analyzing image structure...');
+                await this.delay(800);
+                if (this.shouldStop) return;
+                
+                this.updateProgress(40, 'Identifying objects...');
+                await this.delay(800);
+                if (this.shouldStop) return;
+                
+                // 阶段5: 切换到box hint图片
+                this.updateProgress(60, 'Generating visual hints...');
+                this.switchImage(example.boxHintImage);
+                await this.delay(1000);
+                if (this.shouldStop) return;
+                
+                this.updateProgress(80, 'Reasoning step by step...');
+                await this.delay(800);
+                if (this.shouldStop) return;
+                
+                // 阶段6: 打字显示AI响应
+                await this.typeText(this.aiText, example.response, 25);
+                if (this.shouldStop) return;
+                
+                // 阶段7: 完成进度并切换到结果图片
+                this.updateProgress(100, 'Complete!');
+                await this.delay(500);
+                if (this.shouldStop) return;
+                
+                this.hideProcessing();
+                this.switchImage(example.resultImage);
+                
+                this.isRunning = false;
+            }
+
+            async typeText(element, text, speed = 50) {
+                element.innerHTML = '';
+                // 将换行符转换为<br>标签
+                const formattedText = text.replace(/\n/g, '<br>');
+                
+                // 创建一个临时div来解析HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = formattedText;
+                
+                // 获取所有文本节点和br标签
+                const walker = document.createTreeWalker(
+                    tempDiv,
+                    NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+                    {
+                        acceptNode: function(node) {
+                            if (node.nodeType === Node.TEXT_NODE) {
+                                return NodeFilter.FILTER_ACCEPT;
+                            }
+                            if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'BR') {
+                                return NodeFilter.FILTER_ACCEPT;
+                            }
+                            return NodeFilter.FILTER_REJECT;
+                        }
+                    }
+                );
+                
+                const nodes = [];
+                let node;
+                while (node = walker.nextNode()) {
+                    nodes.push(node);
+                }
+                
+                // 获取终端内容容器用于自动滚动
+                const terminalContent = document.querySelector('.terminal-content');
+                
+                // 逐个字符和标签添加到元素中
+                for (const node of nodes) {
+                    if (this.shouldStop) return;
+                    
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        for (let i = 0; i < node.textContent.length; i++) {
+                            if (this.shouldStop) return;
+                            
+                            element.innerHTML += node.textContent[i];
+                            // 每增加一些字符就滚动到底部
+                            if (i % 5 === 0) {
+                                terminalContent.scrollTop = terminalContent.scrollHeight;
+                            }
+                            await this.delay(speed);
+                        }
+                    } else if (node.tagName === 'BR') {
+                        if (this.shouldStop) return;
+                        
+                        element.appendChild(document.createElement('br'));
+                        // 换行时滚动到底部
+                        terminalContent.scrollTop = terminalContent.scrollHeight;
+                        await this.delay(speed * 2); // 换行时稍微慢一点
+                    }
+                }
+                
+                // 最后确保滚动到底部
+                if (!this.shouldStop) {
+                    terminalContent.scrollTop = terminalContent.scrollHeight;
+                }
+            }
+
+            showProcessing() {
+                this.imageOverlay.classList.add('active');
+            }
+
+            hideProcessing() {
+                this.imageOverlay.classList.remove('active');
+            }
+
+            updateProgress(percentage, text) {
+                this.progressFill.style.width = percentage + '%';
+                this.progressText.textContent = text;
+            }
+
+            switchImage(newSrc) {
+                this.demoImage.style.opacity = '0.5';
+                setTimeout(() => {
+                    this.demoImage.src = newSrc;
+                    this.demoImage.style.opacity = '1';
+                }, 400);
+            }
+
+            resetDemo() {
+                this.questionText.innerHTML = '';
+                this.aiText.innerHTML = '';
+                this.aiResponse.classList.add('hidden');
+                this.cursor.style.display = 'inline-block';
+                this.progressFill.style.width = '0%';
+                this.progressText.textContent = 'Analyzing image...';
+                this.hideProcessing();
+            }
+
+            async nextExample() {
+                // 停止当前demo
+                this.shouldStop = true;
+                
+                // 等待一小段时间确保当前操作停止
+                await this.delay(100);
+                
+                // 切换到下一个示例
+                this.currentIndex = (this.currentIndex + 1) % this.examples.length;
+                
+                // 开始新的demo
+                await this.startDemo();
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // 初始化动态Demo
+        const dynamicDemo = new DynamicDemo();
+    </script>
+</body>
+</html> 
