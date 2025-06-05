@@ -1581,8 +1581,12 @@ Let's now recheck our answer and put ✅ for the target apple and ❌ for others
                 this.progressText = document.querySelector('.progress-text');
                 this.imageOverlay = document.querySelector('.image-overlay');
                 
+                // 设置Next Example按钮的初始样式
+                const nextButton = document.getElementById('next-example');
+                nextButton.style.transition = 'opacity 0.3s ease';
+                
                 // 绑定按钮事件
-                document.getElementById('next-example').addEventListener('click', () => this.nextExample());
+                nextButton.addEventListener('click', () => this.nextExample());
                 
                 // 开始第一个demo
                 this.startDemo();
@@ -1744,17 +1748,47 @@ Let's now recheck our answer and put ✅ for the target apple and ❌ for others
                 this.progressFill.style.width = '0%';
                 this.progressText.textContent = 'Analyzing image...';
                 this.hideProcessing();
+                // 重置图片透明度
+                this.demoImage.style.opacity = '1';
+                // 清除所有可能的动画状态
+                this.demoImage.style.transition = 'none';
+                this.progressFill.style.transition = 'none';
+                // 强制重排以确保过渡被清除
+                this.demoImage.offsetHeight;
+                this.progressFill.offsetHeight;
+                // 恢复过渡
+                this.demoImage.style.transition = '';
+                this.progressFill.style.transition = '';
             }
 
             async nextExample() {
-                // 停止当前demo
-                this.shouldStop = true;
-                
-                // 等待一小段时间确保当前操作停止
-                await this.delay(100);
+                // 如果当前正在运行demo，先停止它
+                if (this.isRunning) {
+                    // 禁用按钮，防止重复点击
+                    const nextButton = document.getElementById('next-example');
+                    nextButton.disabled = true;
+                    nextButton.style.opacity = '0.5';
+                    nextButton.style.cursor = 'not-allowed';
+
+                    // 停止当前demo
+                    this.shouldStop = true;
+                    
+                    // 等待一段时间确保所有动画都已停止
+                    await this.delay(500);
+                    
+                    // 完全重置demo状态
+                    this.resetDemo();
+                    await this.delay(200);
+                }
                 
                 // 切换到下一个示例
                 this.currentIndex = (this.currentIndex + 1) % this.examples.length;
+                
+                // 重新启用按钮
+                const nextButton = document.getElementById('next-example');
+                nextButton.disabled = false;
+                nextButton.style.opacity = '1';
+                nextButton.style.cursor = 'pointer';
                 
                 // 开始新的demo
                 await this.startDemo();
